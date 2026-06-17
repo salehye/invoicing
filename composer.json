@@ -1,0 +1,51 @@
+{
+    "name": "salehye/invoicing",
+    "description": "A standalone Laravel invoicing library with multi-gateway payment support, bank transfer verification, and Overdue status tracking",
+    "keywords": ["laravel", "invoicing", "invoices", "payments", "stripe", "bank-transfer", "vat", "multi-gateway"],
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Saleh",
+            "email": "saleh@example.com"
+        }
+    ],
+    "homepage": "https://github.com/salehye/invoicing",
+    "support": {
+        "issues": "https://github.com/salehye/invoicing/issues",
+        "source": "https://github.com/salehye/invoicing"
+    },
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^11.0|^12.0|^13.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "phpunit/phpunit": "^11.0|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Salehye\\Invoicing\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Salehye\\Invoicing\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Salehye\\Invoicing\\InvoicingServiceProvider"
+            ],
+            "aliases": {
+                "Invoicing": "Salehye\\Invoicing\\Facades\\Invoicing"
+            }
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
