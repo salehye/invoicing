@@ -10,6 +10,8 @@ class GatewayManager
 {
     private array $gateways = [];
 
+    private array $instances = [];
+
     public function __construct(
         private readonly Application $app,
     ) {
@@ -18,6 +20,7 @@ class GatewayManager
     public function register(string $name, string $class): self
     {
         $this->gateways[$name] = $class;
+        unset($this->instances[$name]);
 
         return $this;
     }
@@ -40,6 +43,10 @@ class GatewayManager
             throw new GatewayNotFoundException($name, $this->names());
         }
 
-        return $this->app->make($this->gateways[$name]);
+        if (!isset($this->instances[$name])) {
+            $this->instances[$name] = $this->app->make($this->gateways[$name]);
+        }
+
+        return $this->instances[$name];
     }
 }

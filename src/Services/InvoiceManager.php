@@ -55,6 +55,11 @@ class InvoiceManager
             $discountType = isset($attributes['discount_type'])
                 ? DiscountType::from($attributes['discount_type'])
                 : null;
+
+            if ($discount > 0 && $discountType === null) {
+                throw new \InvalidArgumentException('discount_type is required when discount is greater than 0.');
+            }
+
             $tax = $attributes['tax'] ?? config('invoicing.default_tax_rate', 0);
 
             $this->totalCalculator->applyTotals(

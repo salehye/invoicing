@@ -2,7 +2,7 @@
 
 [![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-blue?style=flat-square)](https://php.net)
 [![Laravel 11|12|13](https://img.shields.io/badge/Laravel-11%20%7C%2012%20%7C%2013-red?style=flat-square)](https://laravel.com)
-[![Tests](https://img.shields.io/badge/Tests-41%20pass%2C%2092%20assertions-green?style=flat-square)]()
+[![Tests](https://img.shields.io/badge/Tests-56%20pass%2C%20121%20assertions-green?style=flat-square)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 A **standalone Laravel invoicing package** with multi-gateway payment support — create invoices, manage line items with taxes/discounts, and process payments through Stripe, bank transfer (with manual admin verification), local testing, or any custom gateway.
@@ -369,10 +369,21 @@ $invoice->isOverdue();    // status === Overdue OR (Unpaid + past due_at)
 ```php
 $invoice->totalPaid();         // sum of successful payments
 $invoice->remainingBalance();   // total - totalPaid (min 0)
+$invoice->isFullyPaid();        // true if remainingBalance <= 0
+$invoice->hasLines();           // true if invoice has line items
+$invoice->lineCount();          // number of line items
 $invoice->lines;                // HasMany relationship
 $invoice->payments;             // HasMany relationship
 $invoice->billable;             // MorphTo relationship (nullable)
 $invoice->user;                 // BelongsTo User (nullable)
+```
+
+### Query Scopes
+
+```php
+Invoice::forTenant('tenant-1')->get();      // filter by tenant
+Invoice::forUser(1)->get();                  // filter by user
+Invoice::status(InvoiceStatus::Paid)->get(); // filter by status
 ```
 
 ---
@@ -606,6 +617,17 @@ awaiting_verification → success (verify) / failed (reject)
 success → refunded
 ```
 
+### PaymentStatus Transitions
+
+```php
+PaymentStatus::Pending->canTransitionTo(PaymentStatus::Success);    // true
+PaymentStatus::Pending->canTransitionTo(PaymentStatus::Failed);     // true
+PaymentStatus::Success->canTransitionTo(PaymentStatus::Refunded);   // true
+PaymentStatus::Failed->canTransitionTo(PaymentStatus::Success);     // false
+```
+
+Invalid transitions throw `PaymentStatusTransitionException`.
+
 ---
 
 ## 🛡️ Exceptions
@@ -613,6 +635,7 @@ success → refunded
 | Exception                          | Thrown When                                        |
 | ---------------------------------- | -------------------------------------------------- |
 | `InvoiceStatusTransitionException` | Invalid invoice status transition                  |
+| `PaymentStatusTransitionException` | Invalid payment status transition                  |
 | `PaymentVerificationException`     | verify/reject on non-awaiting_verification payment |
 | `GatewayNotFoundException`         | Unregistered gateway requested                     |
 | `InvalidPaymentAmountException`    | Amount ≤ 0 or exceeds remaining balance            |
@@ -704,10 +727,14 @@ class Customer extends Model
 
 // Available methods
 $customer->invoices();            // MorphMany — all invoices
+$customer->draftInvoices();       // MorphMany — status = Draft
 $customer->unpaidInvoices();      // MorphMany — status = Unpaid
 $customer->paidInvoices();        // MorphMany — status = Paid
-$customer->overdueInvoices();     // MorphMany — status = Overdue
+$customer->canceledInvoices();    // MorphMany — status = Canceled
+$customer->overdueInvoices();     // MorphMany — Overdue OR unpaid + past due_at
+$customer->refundedinvoices();    // MorphMany — status = Refunded
 $customer->totalInvoiceBalance(); // float — sum of unpaid totals
+$customer->totalPaidAmount();     // float — sum of paid totals
 ```
 
 All methods return `MorphMany` with proper return type declarations.
@@ -862,7 +889,7 @@ composer install
 vendor/bin/phpunit
 ```
 
-**41 tests, 92 assertions** covering:
+**56 tests, 121 assertions** covering:
 
 - ✅ Invoice creation with items & totals
 - ✅ Percentage & fixed discount + tax calculations
@@ -882,6 +909,13 @@ vendor/bin/phpunit
 - ✅ InvalidPaymentAmountException
 - ✅ User ID on invoices and payments
 - ✅ HasInvoices trait
+- ✅ discount_type validation (required when discount > 0)
+- ✅ PaymentStatus::canTransitionTo() transitions
+- ✅ PaymentStatusTransitionException on invalid transitions
+- ✅ Invoice::isFullyPaid(), hasLines(), lineCount()
+- ✅ Invoice scopes: forTenant(), forUser(), status()
+- ✅ HasInvoices: draftInvoices(), canceledInvoices(), refundedinvoices(), totalPaidAmount()
+- ✅ Overdue scope includes unpaid past due_at (not just Overdue status)
 
 ---
 

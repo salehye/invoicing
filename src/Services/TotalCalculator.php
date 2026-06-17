@@ -21,21 +21,21 @@ class TotalCalculator
         ?DiscountType $discountType = null,
         float $taxRate = 0,
     ): Invoice {
-        // Sum line totals (which include line-level tax/discount)
         $subtotal = $invoice->lines()->sum('total');
 
-        // Apply invoice-level discount
-        $discountAmount = $discountType === DiscountType::Percentage
-            ? $subtotal * ($discount / 100)
-            : $discount;
+        $discountMetadata = [
+            'discount_amount' => $discount,
+            'discount_type' => $discountType?->value ?? 'fixed',
+        ];
+        $discountAmount = $this->discountCalculator->calculate($subtotal, $discountMetadata);
 
         $afterDiscount = $subtotal - $discountAmount;
 
-        // Apply invoice-level tax on the amount AFTER discount
-        // Note: line-level tax is already baked into each line's total,
-        // so this tax applies only on the pre-tax subtotal of lines.
-        // If no line-level tax is used, this is the sole tax calculation.
-        $taxAmount = $afterDiscount * ($taxRate / 100);
+        $taxMetadata = [
+            'tax_rate' => $taxRate,
+        ];
+        $taxAmount = $this->taxCalculator->calculate($afterDiscount, $taxMetadata);
+
         $total = $afterDiscount + $taxAmount;
 
         $invoice->update([

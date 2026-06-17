@@ -115,4 +115,34 @@ class Invoice extends Model
     {
         return max(0, (float) $this->total - $this->totalPaid());
     }
+
+    public function isFullyPaid(): bool
+    {
+        return $this->remainingBalance() <= 0;
+    }
+
+    public function hasLines(): bool
+    {
+        return $this->lines()->count() > 0;
+    }
+
+    public function lineCount(): int
+    {
+        return $this->lines()->count();
+    }
+
+    public function scopeForTenant($query, string $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
+    public function scopeForUser($query, int $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    public function scopeStatus($query, InvoiceStatus $status)
+    {
+        return $query->where('status', $status);
+    }
 }

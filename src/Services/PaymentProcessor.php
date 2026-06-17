@@ -13,11 +13,13 @@ use Salehye\Invoicing\Enums\PaymentStatus;
 use Salehye\Invoicing\Events\PaymentFailed;
 use Salehye\Invoicing\Events\PaymentSucceeded;
 use Salehye\Invoicing\Events\PaymentVerified;
+use Salehye\Invoicing\Exceptions\PaymentStatusTransitionException;
 
 class PaymentProcessor
 {
     public function __construct(
         private readonly GatewayManager $gatewayManager,
+        private readonly InvoiceManager $invoiceManager,
     ) {
     }
 
@@ -86,7 +88,7 @@ class PaymentProcessor
 
         $invoice = $payment->invoice;
         if ($invoice->remainingBalance() <= 0 && $invoice->isUnpaid()) {
-            app(InvoiceManager::class)->markAsPaid($invoice);
+            $this->invoiceManager->markAsPaid($invoice);
         }
 
         return $payment;
@@ -113,13 +115,17 @@ class PaymentProcessor
 
     public function markAsSuccess(Payment $payment): Payment
     {
+        if (!$payment->status->canTransitionTo(PaymentStatus::Success)) {
+            throw new PaymentStatusTransitionException($payment->status, PaymentStatus::Success);
+        }
+
         $payment->update(['status' => PaymentStatus::Success]);
 
         event(new PaymentSucceeded($payment));
 
         $invoice = $payment->invoice;
         if ($invoice->remainingBalance() <= 0 && $invoice->isUnpaid()) {
-            app(InvoiceManager::class)->markAsPaid($invoice);
+            $this->invoiceManager->markAsPaid($invoice);
         }
 
         return $payment;
@@ -127,6 +133,10 @@ class PaymentProcessor
 
     public function markAsFailed(Payment $payment): Payment
     {
+        if (!$payment->status->canTransitionTo(PaymentStatus::Failed)) {
+            throw new PaymentStatusTransitionException($payment->status, PaymentStatus::Failed);
+        }
+
         $payment->update(['status' => PaymentStatus::Failed]);
 
         event(new PaymentFailed($payment));

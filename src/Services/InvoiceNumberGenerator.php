@@ -15,7 +15,13 @@ class InvoiceNumberGenerator
         $year = now()->year;
         $month = now()->month;
 
-        $lastInvoice = Invoice::where('number', 'like', "{$prefix}-{$year}-*")
+        $pattern = str_replace(
+            ['{prefix}', '{year}', '{month}', '{sequence}'],
+            [$prefix, $year, $month, str_repeat('_', $seqLength)],
+            $format,
+        );
+
+        $lastInvoice = Invoice::where('number', 'like', str_replace('_', '%', $pattern))
             ->orderByDesc('id')
             ->first();
 

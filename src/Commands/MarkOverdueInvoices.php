@@ -4,6 +4,7 @@ namespace Salehye\Invoicing\Commands;
 
 use Illuminate\Console\Command;
 use Salehye\Invoicing\Enums\InvoiceStatus;
+use Salehye\Invoicing\Events\InvoiceUpdated;
 use Salehye\Invoicing\Models\Invoice;
 
 class MarkOverdueInvoices extends Command
@@ -31,6 +32,7 @@ class MarkOverdueInvoices extends Command
         foreach ($invoices as $invoice) {
             if ($invoice->status->canTransitionTo(InvoiceStatus::Overdue)) {
                 $invoice->update(['status' => InvoiceStatus::Overdue]);
+                event(new InvoiceUpdated($invoice));
                 $count++;
             }
         }
